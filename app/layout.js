@@ -1,4 +1,3 @@
-import { LayoutClient } from './layout-client'
 import { Inter } from 'next/font/google'
 import './globals.css'
 
@@ -14,14 +13,11 @@ export const metadata = {
   metadataBase: new URL('https://yourdomain.com'),
 }
 
-
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>
-        <LayoutClient>
-          {children}
-        </LayoutClient>
+      <body className={inter.className}>
+        {children}
       </body>
     </html>
   )

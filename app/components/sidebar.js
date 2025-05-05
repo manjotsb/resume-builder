@@ -1,8 +1,10 @@
 'use client'
-import { FaBars, FaEnvelope, FaFileAlt, FaHome } from "react-icons/fa";
+import { useRouter } from "next/navigation";
+import { supabase } from "../lib/supabase";
+import { FaBars, FaEnvelope, FaHome } from "react-icons/fa";
 import Link from "next/link";
 import { IoIosSettings } from "react-icons/io";
-import { IoChatbubblesOutline } from "react-icons/io5";
+import { IoChatbubblesOutline, IoLogInOutline } from "react-icons/io5";
 import { GrTemplate } from "react-icons/gr";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
@@ -10,6 +12,13 @@ import { TbDoorExit } from "react-icons/tb";
 
 export function Sidebar({ isOpen, toggleSidebar }) {
   const pathname = usePathname();
+
+  const router = useRouter()
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
 
   const topNavItems = [
     { href: '/dashboard', icon: <FaHome size={20} />, label: 'Dashboard' },
@@ -29,7 +38,7 @@ export function Sidebar({ isOpen, toggleSidebar }) {
       
       {/* Top Section */}
       <div className="flex-shrink-0">
-        <div className={`flex items-center ${isOpen ? 'justify-between' : 'justify-center'} px-8 py-5`}>
+        <div className={`flex items-center ${isOpen ? 'justify-between' : 'justify-center'} px-4 py-5`}>
           {isOpen && (
             <div className="flex items-center">
               <Image src={'/llama_logo.png'} width={50} height={50} alt="Llama logo" className="rounded-md" />
@@ -37,10 +46,10 @@ export function Sidebar({ isOpen, toggleSidebar }) {
           )}
           <button
             onClick={toggleSidebar}
-            className="p-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="p-2 rounded-lg hover:bg-transparent hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
             aria-label={isOpen ? "Collapse sidebar" : "Expand sidebar"}
           >
-            <FaBars className="text-lg text-gray-600" />
+            <FaBars className="text-lg text-gray-600 hover:scale-105 transition-transform duration-200" />
           </button>
         </div>
 
@@ -48,13 +57,13 @@ export function Sidebar({ isOpen, toggleSidebar }) {
         <nav className="mt-2 px-2">
           {topNavItems.map((item) => (
             <Link href={item.href} key={item.href}>
-              <div className={`flex items-center mx-2 my-3 px-3 py-2 rounded-lg cursor-pointer transition-all duration-200
+              <div className={`flex items-center mx-2 my-2 px-3 py-2 rounded-lg cursor-pointer transition-all duration-200
                 ${pathname === item.href 
                   ? 'bg-blue-500 text-white shadow-sm' 
-                  : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'}
+                  : 'text-gray-600 hover:text-blue-600 hover:bg-transparent'}
                 ${isOpen ? '' : 'justify-center'}`}
                 title={isOpen ? '' : item.label}>
-                <span className="flex items-center justify-center w-6 h-6">
+                <span className="flex items-center justify-center w-6 h-6 hover:scale-105 transition-transform duration-200">
                   {item.icon}
                 </span>
                 {isOpen && (
@@ -76,10 +85,10 @@ export function Sidebar({ isOpen, toggleSidebar }) {
               <div className={`flex items-center mx-2 my-1 px-3 py-2 rounded-lg cursor-pointer transition-all duration-200
                 ${pathname === item.href 
                   ? 'bg-blue-500 text-white shadow-sm' 
-                  : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'}
+                  : 'text-gray-600 hover:text-blue-600 hover:bg-transparent'}
                 ${isOpen ? '' : 'justify-center'}`}
                 title={isOpen ? '' : item.label}>
-                <span className="flex items-center justify-center w-6 h-6">
+                <span className="flex items-center justify-center w-6 h-6 hover:scale-105 transition-transform duration-200">
                   {item.icon}
                 </span>
                 {isOpen && (
@@ -94,16 +103,21 @@ export function Sidebar({ isOpen, toggleSidebar }) {
 
         {/* User Profile */}
         <div className={`mt-4 pt-4 border-t border-gray-200 
-          ${isOpen ? 'flex items-center' : 'flex justify-center'} px-2 py-2`}>
-          <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
+          ${isOpen ? 'flex items-center' : 'flex justify-center'} px-2 py-2 justify-between`}>
+          <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 hover:scale-105 transition-transform duration-200">
             <span className="text-xs font-medium text-white">JD</span>
           </div>
           {isOpen && (
-            <div className="ml-3 truncate">
-              <p className="text-sm font-medium text-gray-900">John Doe</p>
-              <p className="text-xs text-gray-500">Admin</p>
+            <div className="flex ml-3 truncate justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-900">John Doe</p>
+                <p className="text-xs text-gray-500">Admin</p>
+              </div>
             </div>
           )}
+          <div className=" rounded-xl hover:bg-gray-100 p-2" onClick={handleLogout}>
+            <IoLogInOutline size={30} className="text-red-500"/>
+          </div>
         </div>
       </div>
     </div>

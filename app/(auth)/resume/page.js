@@ -4,7 +4,9 @@ import { FiDownload, FiInfo, FiAlertCircle, FiEye, FiX } from 'react-icons/fi';
 
 export default function ResumeOptimizer() {
   const [resumeFile, setResumeFile] = useState(null);
+  const [jobPostingUrl, setJobPostingUrl] = useState('');
   const [jobDescription, setJobDescription] = useState('');
+  const [useManualEntry, setUseManualEntry] = useState(false);
   const [parsedDetails, setParsedDetails] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -19,7 +21,6 @@ export default function ResumeOptimizer() {
     const file = e.target.files[0];
     if (file && file.type === 'application/pdf') {
       setResumeFile(file);
-      // Create temporary URL for preview
       const url = URL.createObjectURL(file);
       setUploadPreviewUrl(url);
       setError('');
@@ -49,6 +50,14 @@ export default function ResumeOptimizer() {
       setError('Please upload a resume PDF');
       return;
     }
+    if (!useManualEntry && !jobPostingUrl) {
+      setError('Please provide a job posting URL');
+      return;
+    }
+    if (useManualEntry && !jobDescription) {
+      setError('Please provide a job description');
+      return;
+    }
     setIsLoading(true);
     setError('');
     setSuccess('');
@@ -58,7 +67,11 @@ export default function ResumeOptimizer() {
     try {
       const formData = new FormData();
       formData.append('resume', resumeFile);
-      formData.append('jobDescription', jobDescription);
+      if (useManualEntry) {
+        formData.append('jobDescription', jobDescription);
+      } else {
+        formData.append('jobPostingUrl', jobPostingUrl);
+      }
 
       const response = await fetch('/api/optimize-resume', {
         method: 'POST',
@@ -70,8 +83,11 @@ export default function ResumeOptimizer() {
         throw new Error(errorData.error || 'Failed to generate resume');
       }
 
-      const { pdfBytes, fileName, userDetails } = await response.json();
+      const { pdfBytes, fileName, userDetails, fetchedJobDescription } = await response.json();
       setParsedDetails(userDetails);
+      if (fetchedJobDescription) {
+        setJobDescription(fetchedJobDescription);
+      }
       const pdfUrl = `data:application/pdf;base64,${pdfBytes}`;
       setOptimizedPreviewUrl(pdfUrl);
       setDownloadInfo({ pdfBytes, fileName });
@@ -117,13 +133,23 @@ export default function ResumeOptimizer() {
     setShowPreview({ type, visible: true });
   };
 
+  // Validate URL
+  const isValidUrl = (url) => {
+    try {
+      new URL(url);
+      return url.includes('linkedin.com') || url.includes('indeed.com');
+    } catch {
+      return false;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8 text-black">
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Resume Builder</h1>
           <p className="text-gray-600">
-            Upload your resume PDF and enter a job description to generate a tailored resume
+            Upload your resume PDF and provide a job posting URL or job description to generate a tailored resume
           </p>
         </div>
 
@@ -156,20 +182,49 @@ export default function ResumeOptimizer() {
                 </p>
               </div>
 
-              {/* Job Description */}
+              {/* Job Posting URL or Manual Entry Toggle */}
               <div>
-                <label htmlFor="jobDescription" className="block text-sm font-medium text-gray-700 mb-2">
-                  Job Description *
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Job Posting URL or Description *
                 </label>
-                <textarea
-                  id="jobDescription"
-                  rows={8}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Paste the job description you're applying for..."
-                  value={jobDescription}
-                  onChange={(e) => setJobDescription(e.target.value)}
-                  required
-                />
+                <div className="flex items-center mb-2">
+                  <input
+                    type="checkbox"
+                    id="useManualEntry"
+                    checked={useManualEntry}
+                    onChange={() => setUseManualEntry(!useManualEntry)}
+                    className="mr-2"
+                  />
+                  <label htmlFor="useManualEntry" className="text-sm text-gray-600">
+                    Enter job description manually
+                  </label>
+                </div>
+                {!useManualEntry ? (
+                  <div>
+                    <input
+                      type="text"
+                      id="jobPostingUrl"
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Enter job posting URL (e.g., LinkedIn, Indeed)"
+                      value={jobPostingUrl}
+                      onChange={(e) => setJobPostingUrl(e.target.value)}
+                      required={!useManualEntry}
+                    />
+                    <p className="mt-1 text-sm text-gray-500">
+                      Provide a URL to a job posting from LinkedIn or Indeed. We'll fetch the job description automatically.
+                    </p>
+                  </div>
+                ) : (
+                  <textarea
+                    id="jobDescription"
+                    rows={8}
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Paste the job description you're applying for..."
+                    value={jobDescription}
+                    onChange={(e) => setJobDescription(e.target.value)}
+                    required={useManualEntry}
+                  />
+                )}
               </div>
 
               {/* Parsed Details (Read-Only Display) */}
@@ -209,7 +264,17 @@ export default function ResumeOptimizer() {
                   {parsedDetails.education && (
                     <div>
                       <p className="text-sm font-medium text-gray-700">Education</p>
-                      <p className="text-sm text-gray-600">{parsedDetails.education}</p>
+                      <ul className="text-sm text-gray-600">
+                        {parsedDetails.education.split('\n').map((entry, index) => {
+                          const [school, course, date] = entry.split('|').map(s => s.trim());
+                          return (
+                            <li key={index} className="mb-2">
+                              {school} ({date})<br />
+                              {course}
+                            </li>
+                          );
+                        })}
+                      </ul>
                     </div>
                   )}
                   {parsedDetails.experience && (
@@ -234,6 +299,12 @@ export default function ResumeOptimizer() {
                     <div>
                       <p className="text-sm font-medium text-gray-700">Achievements</p>
                       <p className="text-sm text-gray-600">{parsedDetails.achievements}</p>
+                    </div>
+                  )}
+                  {jobDescription && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Fetched Job Description</p>
+                      <p className="text-sm text-gray-600">{jobDescription}</p>
                     </div>
                   )}
                 </div>

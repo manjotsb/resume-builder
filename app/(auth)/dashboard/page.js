@@ -55,8 +55,8 @@ export default function DashboardPage() {
         },
     ];
 
-    return(
-        <div className="flex bg-gray-50 text-black flex-col overflow-auto p-6">
+    return (
+        <div className="flex flex-col p-6">
             <div className="flex items-center justify-between w-full sticky top-0 left-0">
                 <p className="text-2xl">My Dashboard</p>
                 <div className="flex space-x-5 items-center">
@@ -150,4 +150,4 @@ export default function DashboardPage() {
             </div>
         </div>
     )
-}
+} 
